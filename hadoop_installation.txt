@@ -1,0 +1,127 @@
+## JAVA installation
+sudo apt-get update
+sudo add-apt-repository ppa:webupd8team/java
+sudo apt-get update
+sudo apt-get install oracle-jdk7-installer
+----------------------------------------------------------------------
+
+## HADOOP Download
+wget http://apache.mirror.gtcomm.net/hadoop/common/hadoop-1.2.1/hadoop-1.2.1.tar.gz
+tar -xzvf hadoop-1.2.1.tar.gz
+mv hadoop-1.2.1 hadoop
+
+vi .bashrc
+export HADOOP_CONF=/home/ubuntu/hadoop/conf
+export HADOOP_PREFIX=/home/ubuntu/hadoop
+
+#Set JAVA_HOME
+export JAVA_HOME=/usr/lib/jvm/java-7-oracle
+
+# Add Hadoop bin/ directory to path
+export PATH=$PATH:$HADOOP_PREFIX/bin
+
+## to check if the environment variable has been set correctly
+source ~/.bashrc
+echo $HADOOP_PREFIX
+echo $HADOOP_CONF
+------------------------------------------------------------------------------------------------------------------------------------------
+
+## Password less SSH on Servers - to log into SSN and Slave Nodes without password
+
+chmod 644 .ssh/authorized_keys
+chmod 400 hadoopec2cluster.pem
+
+eval `ssh-agent -s`
+ssh-add hadoopec2cluster.pem
+-----------------------------------------------------------------------------------------------------------------------
+
+## Hadoop Cluster Setup
+
+vi $HADOOP_CONF/hadoop-env.sh
+export JAVA_HOME=/usr/lib/jvm/java-7-oracle
+
+## This file contains configuration settings for Hadoop Core (for e.g I/O) that are common to HDFS and MapReduce 
+## Default file system configuration property – fs.default.name  goes here it could for e.g hdfs / s3 which will be used by clients.
+ 
+vi $HADOOP_CONF/core-site.xml
+
+<configuration>
+
+<property>
+<name>fs.default.name</name>
+<value>hdfs://ec2-52-27-83-182.us-west-2.compute.amazonaws.com:8020</value>
+</property>
+
+<property>
+<name>hadoop.tmp.dir</name>
+<value>/home/ubuntu/hdfstmp</value>
+</property>
+
+</configuration>
+
+## This file contains the configuration for HDFS daemons, the NameNode, SecondaryNameNode  and data nodes.
+
+vi $HADOOP_CONF/hdfs-site.xml
+
+<configuration>
+<property>
+<name>dfs.replication</name>
+<value>2</value>
+</property>
+<property>
+<name>dfs.permissions</name>
+<value>false</value>
+</property>
+</configuration>
+
+## This file contains the configuration settings for MapReduce daemons; the job tracker and the task-trackers.
+
+vi $HADOOP_CONF/mapred-site.xml
+
+<configuration>
+<property>
+<name>mapred.job.tracker</name>
+<value>hdfs://ec2-52-27-83-182.us-west-2.compute.amazonaws.com:8021</value>
+</property>
+</configuration>
+
+
+## Moving configuration files to SSN and slaves
+
+scp hadoop-env.sh core-site.xml hdfs-site.xml mapred-site.xml ubuntu@ec2-52-27-86-83.us-west-2.compute.amazonaws.com:/home/ubuntu/hadoop/conf
+scp hadoop-env.sh core-site.xml hdfs-site.xml mapred-site.xml ubuntu@ec2-52-27-83-144.us-west-2.compute.amazonaws.com:/home/ubuntu/hadoop/conf
+scp hadoop-env.sh core-site.xml hdfs-site.xml mapred-site.xml ubuntu@ec2-52-27-83-150.us-west-2.compute.amazonaws.com:/home/ubuntu/hadoop/conf
+
+## Configure masters and slaves
+
+vi $HADOOP_CONF/masters
+ec2-52-27-83-182.us-west-2.compute.amazonaws.com
+ec2-52-27-86-83.us-west-2.compute.amazonaws.com
+
+vi $HADOOP_CONF/slaves
+ec2-52-27-83-144.us-west-2.compute.amazonaws.com
+ec2-52-27-83-150.us-west-2.compute.amazonaws.com
+
+## Copy msters and slaves to SSN
+
+scp masters slaves ubuntu@ec2-52-27-86-83.us-west-2.compute.amazonaws.com:/home/ubuntu/hadoop/conf
+
+## Configure slaves file on Slave Nodes - Each slave will have its own hostname
+
+vi $HADOOP_CONF/slaves
+ec2-52-27-83-144.us-west-2.compute.amazonaws.com
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+### Start Hadoop
+
+hadoop namenode -format
+
+## start deamons
+cd $HADOOP_CONF
+start-all.sh
+
+## stop all deamons
+stop-all.sh
+ 
+## to check all deamons running
+jps
