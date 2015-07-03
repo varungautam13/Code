@@ -1,0 +1,31 @@
+## TO BE INSTALLED ON ALL NODES
+
+## Install dependencies
+install.packages(c("codetools", "R", "Rcpp", "RJSONIO", "bitops", "digest", "functional", "stringr", "plyr", "reshape2", "rJava", "caTools"))
+
+## Install rmr2
+sudo R CMD INSTALL rmr rmr2_2.3.0.tar.gz
+
+## Install rhdfs
+sudo JAVA_HOME=/usr/lib/jvm/java-7-oracle R CMD javareconf
+sudo HADOOP_CMD=/home/ubuntu/hadoop/bin/hadoop R CMD INSTALL rhdfs rhdfs_1.0.8.tar.gz
+
+## set Hadoop Streaming
+Sys.setenv("HADOOP_STREAMING"="/home/ubuntu/hadoop/contrib/streaming/hadoop-streaming-1.2.1.jar")
+
+## Set Hadoop CMD if rhdfs doesn't load
+Sys.setenv("HADOOP_CMD"="/home/ubuntu/hadoop/bin/hadoop")
+
+## To update th einstalled version of R
+sudo vi /etc/apt/sources.list
+deb http://cran.cnr.berkeley.edu/bin/linux/ubuntu/ trusty/
+sudo apt-get update
+sudo apt-get install r-base
+
+## Map Reduce Example
+inst <- to.dfs(1:5)
+calc <- mapreduce(input = ints, map = function(k,v) cbind(a, 2*v))
+from.dfs(calc)
+
+## rmr2 looks for dependencies in /usr/lib/R/library
+sudo chmod -R 0777 /usr/lib/R/library
