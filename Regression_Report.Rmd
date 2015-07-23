@@ -1,0 +1,42 @@
+---
+title: "Motor Trend: Analysis of effect of Transmission (automatic/manual) on MPG"
+author: "Varun Gautam"
+date: "July 23, 2015"
+---
+
+## Executive Summary
+
+This analysis, as a part of Regression Model course for Data Science Specialization, intends to  figure out the impact of two types of transmission - automatic and manual- on miles per gallon (mpg) and even quantifies the difference in mpg for both transmissions.
+The report uses mtcars dataset, which consists of 11 (eleven) parameters for 32 (thirty-two) automobile types, to perform the analysis. Exploratory Data Analysis and Regression Models have been used for the same. The final analysis suggests that the mpg for manual transmission automobiles is more than that of automatic transmission automobiles.The difference is about 7 (seven) mpg. Also, the analysis shows that lighter cars with manual transmission will have higher mpg than heavier cars with automatic transmission.
+
+## Data Exploration
+
+To begin the basic data exploration, we will first load mtcars dataset into R and view the datatypes
+```{r, results='hide'}
+library(datasets)
+data(mtcars)
+str(mtcars)
+```
+To gauge the initial impact of transmission on mpg, we make a boxplot which indicates the higher mpg for manual transmission. We also create scatterplots for mpg vs other variables to infer the correlation between them. There seems to be a higher correlation for "cyl", "disp", "wt", "qsec" and "am". Please refer appendix for the same.
+
+## Transmission Vs MPG
+
+While analyzing the impact of transmission on MPG, we start with a null hypothesis that mpg for both of the transmission is same. We then fit a linear model with transmission predictor (am = 0 (automatic), 1(manual) as a factor variable) and mpg as outcome
+```{r}
+mtcars$am <- factor(mtcars$am)
+fit <- lm(mpg~am, data= mtcars)
+summary(fit)$coef
+```
+
+The coefficients of the linear model indicates the mean mpg for automatic transmission as 17.15 and that for manual transmission as 24.39. The lower p-values (< 0.05) indicates the significant difference between the two means with a difference of about 7 mpg.
+
+## Impact of other parameters on MPG
+```{r}
+fit.all <- lm(mpg~., data=mtcars)
+summary(fit.all)
+mtcars$cyl <- factor(mtcars$cyl)
+fit.best <- lm(mpg~wt+qsec+am, data=mtcars)
+summary(fit.best)
+```
+
+
