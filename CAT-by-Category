@@ -4,51 +4,61 @@ library(tidyr)
 library(readxl)
 library(gridExtra)
 
+
 CAT_Data <- read_excel("CATData_3.xlsx", sheet = 1)
-Session_Data <- read_excel("CATData_3.xlsx", sheet = 3)
+Session_Data <- read_excel("CATData_3.xlsx", sheet = 2)
 Category_vector <- unique(CAT_Data$Category_Name)
-Category_Req <- Category_vector[c(1,3,4,5,6,8,9,11)]
+Category_Req <- Category_vector[c(1,2,3,4,6)]
 CAT_Data <- CAT_Data %>%
-        filter(Category_Name %in% Category_Req)
+    filter(Category_Name %in% Category_Req)
 CAT_Data_list <- split(CAT_Data, CAT_Data$Category_Name)
-Session_Data_list <- split(Session_Data, Session_Data$Session_Key)
 
 Students <- unique(CAT_Data$Session_Key)
-#Category_Names[1:2] <- c("Basic Care Comfort","Health Promotion Maint.")
+Session_Data <- Session_Data %>%
+    transform(Theta = as.numeric(Theta))
+Student_Score<- Session_Data %>% 
+    group_by(Session_Key) %>%
+    arrange(as.numeric(Sequence_Number)) %>%
+    summarise(theta = last(Theta)) %>%
+    mutate(CAT_Score = (theta +3)*3.75) 
 
-rm(CAT_Data,Category_vector, Session_Data)
+rm(CAT_Data,Category_vector)
 
 for (m in 1:length(CAT_Data_list)){
+    
+    Filter_Category <- CAT_Data_list[[m]] %>% 
+        filter(Question_Correct == 1) %>% 
+        select(Session_Key, Sequence_Number, Category_Name, Percentage, Actual_Value) %>%
+        filter(Sequence_Number %in% seq(5,155,5)) %>%
+        mutate(Actual_Percentage = (as.integer(Actual_Value)/as.integer(Sequence_Number))*100) %>% 
+        select(-5) 
+    
+    plot_list<- list()
+    
+    for (n in 1:length(Students) ) {
+        Filter_Category1 <- Filter_Category %>% filter(Session_Key == Students[n]) %>%
+            gather(Category,Percentages,Percentage,Actual_Percentage) %>%
+            select(Sequence_Number,Category,Percentages, Category_Name) %>%
+            mutate(Category = ifelse(Category == "Actual_Percentage", "Category", "Blueprint")) %>%
+            select(-4)
         
-        Filter_Category <- CAT_Data_list[[1]] %>% 
-                filter(Question_Correct == 1) %>% 
-                select(Session_Key, Sequence_Number, Category_Name, Percentage, Actual_Value) %>%
-                filter(Sequence_Number %in% seq(5,155,5)) %>%
-                mutate(Actual_Percentage = (as.integer(Actual_Value)/as.integer(Sequence_Number))*100) %>% 
-                select(-5) 
+        CAT_Score <- round(as.numeric(Student_Score[n,3]),2)
+        plot<-ggplot(Filter_Category1, aes(x=as.numeric(Sequence_Number), y=round(as.numeric(Percentages),2),  colour=Category)) + geom_line(lwd=0.75) +  xlab("Item Count") + ylab("Percentage") + theme_grey() + theme(axis.title.x=element_text(size=8, face="bold")) + theme(axis.title.y=element_text(size=8,face="bold")) +  ylim(c(0,50)) + theme(legend.position="none")  + annotate("text",x=60,y=40,label=paste("CAT Score: ",CAT_Score), size=3)
+        plot_list[[n]]<-plot
         
-        names(Filter_Category)[3] <- "Blueprint"
-        #CAT_Score<-as.numeric((summarise(Session_Data_list[[m]],CAT_Score=last(as.numeric(Theta)))+3)*3.75 )
-        plot_list<- list()
         
-        for (n in 1:length(Students) ) {
-                Filter_Category1 <- Filter_Category %>% filter(Session_Key == Students[n]) %>%
-                        gather(Category,Percentages,Percentage,Actual_Percentage) %>%
-                        select(Sequence_Number,Category,Percentages, Category_Name) %>%
-                        mutate(Category = ifelse(Category == "Actual_Percentage", "X", "ablueprint")) %>%
-                        select(-4)
-                
-                plot<-ggplot(Filter_Category1, aes(x=as.numeric(Sequence_Number), y=round(as.numeric(Percentages),2),  colour=Category)) + geom_line(lwd=0.75) +  xlab("Item Count") + ylab("Percentage") + theme_grey() + theme(axis.title.x=element_text(size=8, face="bold")) + theme(axis.title.y=element_text(size=8,face="bold")) + theme(legend.position = "bottom") +  guides(colour=guide_legend(title = NULL)) + ylim(c(0,40))
-                plot_list[[n]]<-plot
-        }
-        
-        pdf(paste("CAT_TestTaker_", m, ".pdf"))
-        #sapply(plot_list,grid.arrange, main = paste("\n Category Blueprint Vs Actual Percentages [Score:", CAT_Score,"]"))
-        grid.arrange(plot_list[[1]], plot_list[[2]], plot_list[[3]], plot_list[[4]], ncol=2, nrow=2, widths = unit(0.5,"npc"), heights = unit(0.5,"npc"))
-        grid.arrange(plot_list[[5]], plot_list[[6]], plot_list[[7]], plot_list[[8]], ncol=2, nrow=2, widths = unit(0.5,"npc"), heights = unit(0.5,"npc"))#, main = paste("\n Category Blueprint Vs Actual Percentages [Score:""]"))
-        grid.arrange(plot_list[[9]], plot_list[[10]], plot_list[[11]], plot_list[[12]], ncol=2, nrow=2, widths = unit(0.5,"npc"), heights = unit(0.5,"npc"))#, main = paste("\n Category Blueprint Vs Actual Percentages [Score:""]"))
-        grid.arrange(plot_list[[13]], plot_list[[14]], plot_list[[15]], ncol=2, nrow=2, widths = unit(0.5,"npc"), heights = unit(0.5,"npc"))#, main = paste("\n Category Blueprint Vs Actual Percentages [Score:""]"))
-        dev.off()
+    }
+   
+    
+    pdf(paste("CAT_Plots_",m,".pdf"))
+    #grid_arrange_shared_legend(plot_list[[1]], plot_list[[2]], plot_list[[3]], plot_list[[4]])
+    grid.arrange(plot_list[[1]], plot_list[[2]], plot_list[[3]], plot_list[[4]], ncol=2, nrow=2, widths = unit(0.5,"npc"), heights = unit(0.5,"npc"), main = paste("\n Category Blueprint Vs Actual Percentages [",Category_Req[m],"]"))
+    grid.arrange(plot_list[[5]], plot_list[[6]], plot_list[[7]], plot_list[[8]], ncol=2, nrow=2, widths = unit(0.5,"npc"), heights = unit(0.5,"npc"), main = paste("\n Category Blueprint Vs Actual Percentages [",Category_Req[m],"]"))
+    grid.arrange(plot_list[[9]], plot_list[[10]], plot_list[[11]], plot_list[[12]], ncol=2, nrow=2, widths = unit(0.5,"npc"), heights = unit(0.5,"npc"), main = paste("\n Category Blueprint Vs Actual Percentages [",Category_Req[m],"]"))
+    
+    grid.arrange(plot_list[[13]], plot_list[[14]], plot_list[[15]], ncol=2, nrow=2, widths = unit(0.5,"npc"), heights = unit(0.5,"npc"), main = paste("\n Category Blueprint Vs Actual Percentages [",Category_Req[m],"]"))
+    dev.off()
+    
 }
 rm(list=ls(all=TRUE))
 
