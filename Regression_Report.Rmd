@@ -16,6 +16,7 @@ To begin the basic data exploration, we will first load mtcars dataset into R an
 library(datasets)
 data(mtcars)
 str(mtcars)
+mtcars <- transform(mtcars, am = as.factor(am), cyl = as.factor(cyl), gear = as.factor(gear), carb = as.factor(carb))
 ```
 To gauge the initial impact of transmission on mpg, we make a boxplot which indicates the higher mpg for manual transmission. We also create scatterplots for mpg vs other variables to infer the correlation between them. There seems to be a higher correlation for "cyl", "disp", "wt", "qsec" and "am". Please refer appendix for the same.
 
@@ -23,7 +24,6 @@ To gauge the initial impact of transmission on mpg, we make a boxplot which indi
 
 While analyzing the impact of transmission on MPG, we start with a null hypothesis that mpg for both of the transmission is same. We then fit a linear model with transmission predictor (am = 0 (automatic), 1(manual) as a factor variable) and mpg as outcome
 ```{r}
-mtcars$am <- factor(mtcars$am)
 fit <- lm(mpg~am, data= mtcars)
 summary(fit)$coef
 ```
@@ -31,12 +31,52 @@ summary(fit)$coef
 The coefficients of the linear model indicates the mean mpg for automatic transmission as 17.15 and that for manual transmission as 24.39. The lower p-values (< 0.05) indicates the significant difference between the two means with a difference of about 7 mpg.
 
 ## Impact of other parameters on MPG
+
+To find out the impact of other parameters (along with am) on MPG, we would first fit a linear model with all parameters
 ```{r}
 fit.all <- lm(mpg~., data=mtcars)
-summary(fit.all)
-mtcars$cyl <- factor(mtcars$cyl)
-fit.best <- lm(mpg~wt+qsec+am, data=mtcars)
-summary(fit.best)
+summary(fit.all)$adj.r.squared
+summary(fit.all)$coef
 ```
 
+The adjusted R-squared value for this fit is 0.779 but the results also show that no p-value for the coefficients is statistically significant. So, we would use the approach to find the best selection(of parameters) for the model. To do this we would remove each parameter having highest p-value, one at a time
+```{r}
+fit.best <- lm(mpg~.-cyl-gear-carb-vs-drat-disp-hp,data=mtcars)
+fit.best <- lm(mpg~wt+qsec+am, data=mtcars)
+summary(fit.best)$coef
+summary(fit.best)$adj.r.squared
+```
+
+As we keep removing the parameters with higest p-value, we get the above model as the best fit. We can also see that there is a correlation between weight and transmission. So, we can add an interaction term to the model.
+```{r}
+fit.best <- lm(mpg~qsec+wt+am+wt:am)
+summary(fit.best)$coef
+summary(fit.best)$adj.r.squared
+```
+
+The above model is the best fit model with an Adjusted R-squared value of 0.8804 and only the intercept as non-significant.
+
+## Residual Analysis for best fit
+
+1. The Residual vs Fitted plot (refer Appendix) shows no any discernible pattern indicating that there are no major problems with the linear fit of the model. 
+2. The Normal Q-Q plot (refer Appendix) shows that the residuals are normally distributed as the points lie closely to the line.
+3. The Scale-Location plot (refer Appendix) confirms the constant variance assumption, as the points are randomly distributed
+4. The Residuals vs. Leverage argues that no outliers are present, as all values fall well within the 0.5.
+
+## Appendix
+
+MPG vs Transmission
+```{r}
+boxplot(mpg ~ am, data = mtcars, names = c("Automatic", "Manual"), ylab = "Miles Per Gallon", xlab = "Transmission Type")
+```
+
+Paired Scatterplots for mtcars 
+```{r}
+pairs(mtcars)
+```
+
+Residual Plots
+```{r}
+plot(fit.best)
+```
 
