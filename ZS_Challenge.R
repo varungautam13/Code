@@ -75,17 +75,27 @@ else{
 ## Prediction
 for (z in 1: dim(test_data)[1])
 {
-    desc_val <- test_data$Description
-    test_terms <- terms(desc_val[z], test=1)
-    
-    x<-match(test_terms,train_terms_H, nomatch=0)
-    if (any(x!=0))
-    {
-        test_data$Author_Category[z] <- "HCP"
-    }else 
-    {
-        test_data$Author_Category[z] <- "Non_HCP"
-    }
+  desc_val <- test_data$Description
+  test_terms <- terms(desc_val[z], test=1)
+  
+  x<-match(test_terms,train_terms_H, nomatch=0)
+  if (any(x!=0))
+  {
+    test_data$Author_Category[z] <- "HCP"
+  }else 
+  {
+    test_data$Author_Category[z] <- "Non_HCP"
+  }
+}
+names_val <- test_data$Name
+for (z in 1:dim(test_data)[1])
+{
+  
+  y <- match(names_val[z],x, nomatch=0)
+  if (any(y!=0))
+  {
+    test_data$Author_Category[z] <- "HCP"
+  }
 }
 
 test_data <- test_data %>% select(UID, Author_Category)
