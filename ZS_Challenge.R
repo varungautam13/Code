@@ -113,3 +113,14 @@ for (i in 1:7 )
     test_data$Description[a[i]] <- paste(fav$text, collapse="")
     }
 }
+
+## Name Extraction
+library(stringr)
+name <- train_data$Name
+head(name)
+d<-str_split(a$z,",")
+n <- a$z
+  n<-str_replace(n,",",":")
+a$z <- n
+h<-sub(".*:", "", a$z)
+df <- as.data.frame(h)
