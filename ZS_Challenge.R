@@ -90,3 +90,26 @@ for (z in 1: dim(test_data)[1])
 
 test_data <- test_data %>% select(UID, Author_Category)
 write.csv(test_data, file="Submission_challenge_2.csv")
+
+## NA Values
+library(twitteR)
+desc_all <- test_data$Description
+sum(is.na(desc_all))
+summary(desc_all)
+str(desc_all)
+nchar(desc_all[5816])
+desc_all[a]
+x<-sapply(gregexpr("\\W+", desc_all), length) + 1
+a<-which(x==2)
+handle <- test_data$Handle[a]
+l<-length(handle)
+for (i in 1:7 )
+{
+  y <- getUser(handle[i])
+  fav <- y$getFavorites()
+  if (length(fav) !=0)
+  {
+    fav <- twListToDF(fav)
+    test_data$Description[a[i]] <- paste(fav$text, collapse="")
+    }
+}
