@@ -12,9 +12,8 @@ terms <- function(desc, train){
   docs <- tm_map(docs, toSpace, "@")
   docs <- tm_map(docs, toSpace, "\\|")
   docs <- tm_map(docs, toSpace, "-")
-  # docs <- tm_map(docs, toSpace, "(")
-  # docs <- tm_map(docs, toSpace, ")")
-  
+  docs <- tm_map(docs, toSpace, "#")
+ 
   if(train==1){
     dtm <- DocumentTermMatrix(docs)
     freq_terms<- findFreqTerms(dtm, lowfreq = 40)}
@@ -125,5 +124,65 @@ in.auth <- inOAuth("Varun", "75wy1hjpdz0xr7", "gX3k9fQVrKRk8MVM")
 
 my.connections <- getMyConnections(in.auth)
 getProfile(in.auth)
+
+## URL Decoder
+url_decode <- function(dataset){
+    
+    for (i in 1: dim(dataset)[1])
+    {
+        if(!is.na(dataset$Description[i]))
+        {
+            desc_each <- unlist(strsplit(dataset$Description[i]," "))
+            url <- desc_each[grep("http",desc_each)]
+            
+                if (length(url)!=0)
+                {
+                    for (x in 1:length(url))
+                    {
+                        y <- unlist(strsplit(url[x],""))
+                        if(y[length(y)]==".")
+                        {
+                            url[x] <- substr(url[x],1,nchar(url[x])-1)
+                        }
+                        url[x] <- decode_short_url(url[x])
+                        desc_each[grep("http:",desc_each)[x]] <- url[x]
+                    
+                    }
+                     dataset$Description[i] <- paste(desc_each, collapse=" ")
+                
+                }
+            
+        }
+    }
+} 
+
+
+
+
+## User Description
+User_Desc <- function(dataset){
+    
+    for (i in 1: dim(dataset)[1])
+    {
+        if(!is.na(dataset$Description[i]))
+        {
+            desc_each <- unlist(strsplit(dataset$Description[i]," "))
+            user <- sub(",","",desc_each[grep("@",desc_each)])
+            user <- sub("\\.","",user)
+            if (length(user) !=0)
+            {
+                for (x in 1:length(user))
+                {
+                    user[x] <- sub("@","",user[x])
+                    user_tw <- getUser(user[x])
+                    user_desc <- user_tw$description
+                    desc_each[grep("@",desc_each)[x]] <- paste(desc_each[grep("@",desc_each)[x]],user_desc)
+                    
+                }
+                dataset$Description[i] <- paste(desc_each, collapse=" ")
+            }
+        }
+    }
+}
 
 
