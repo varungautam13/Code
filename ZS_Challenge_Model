@@ -1,0 +1,129 @@
+## Text Mining
+terms <- function(desc, train){
+  txt.desc <- VectorSource(desc)
+  txt.desc <- Corpus(txt.desc, readerControl = list(language = "en"))
+  docs <- tm_map(txt.desc, content_transformer(tolower))
+  docs <- tm_map(docs, removeWords, stopwords("english"))
+  docs <- tm_map(docs, removeWords, c("tweets","views", "director", "university","http:","t.co", "opinions"))
+  docs <- tm_map(docs, stripWhitespace)
+  docs <- tm_map(docs, removeNumbers)
+  toSpace <- content_transformer(function(x , pattern) gsub(pattern, " ", x))
+  docs <- tm_map(docs, toSpace, "/")
+  docs <- tm_map(docs, toSpace, "@")
+  docs <- tm_map(docs, toSpace, "\\|")
+  docs <- tm_map(docs, toSpace, "-")
+  # docs <- tm_map(docs, toSpace, "(")
+  # docs <- tm_map(docs, toSpace, ")")
+  
+  if(train==1){
+    dtm <- DocumentTermMatrix(docs)
+    freq_terms<- findFreqTerms(dtm, lowfreq = 40)}
+  else if(train==2){
+    dtm <- DocumentTermMatrix(docs, control = list(dictionary=train_terms_H)) 
+    }
+  else if(train==3){
+      dtm <- DocumentTermMatrix(docs, control = list(dictionary=name_terms)) 
+  }
+  
+}
+
+## Term Dictionary
+library(readxl)
+library(tm)
+library(dplyr)
+library(caret)
+setwd("C:/Users/Varun/Desktop/Varun/ZS_Challenge")
+train_data <- read_excel("challenge_training data.xlsx")
+
+## description terms
+
+desc_HCP <- train_data %>% 
+    filter(Author_Category=="HCP") %>% 
+    select(Description)
+
+freq_terms_HCP <- terms(desc_HCP, train = 1)
+train_terms_H <- freq_terms_HCP[-11]
+
+
+## Name terms
+name <- train_data$Name
+hcp_name <- grep(",",name)
+name_req <- name[hcp_name]
+name_terms <- sub(".*,","",name_req)
+name_terms <- unique(name_terms)
+name_terms <- name_terms[-c(5,9,12,32,42,45,47,48,50,51,53,54,55)]
+
+
+## Data Creation
+preproc <- function(dataset){
+name <- dataset$Name
+desc <- dataset$Description
+# following <- dataset$Following_count
+# followers <- dataset$Followers_count
+
+dtm <- terms(desc, train=2)
+termdf <- as.matrix(dtm)
+termdf<- as.data.frame(termdf)
+
+
+dtm <- terms(name, train=3)
+namedf <- as.matrix(dtm)
+namedf<- as.data.frame(namedf)
+
+
+df <- cbind(termdf,namedf)
+}
+
+## Model Creation
+train_id <- createDataPartition(train_data$Author_Category, times=1,p=0.7, list=F)
+training <- train_data[train_id,]
+
+author_cat <- training$Author_Category
+
+df <- preproc(training)
+df <- cbind(df,author_cat)
+
+fit <- train(author_cat~.,data=df,method="rf", 
+             trControl=trainControl(method="repeatedcv",
+                                    number=10,
+                                    repeats=10))
+
+fit$finalModel
+
+## Validation
+validation <- train_data[-train_id,]
+
+author_categ <- validation$Author_Category
+
+df1 <- preproc(validation)
+pred <- predict(fit,df1)
+
+confusionMatrix(author_categ,pred)
+
+## Prediction
+test_data <- read_excel("challenge_submission.xlsx")
+
+df2 <- preproc(test_data)
+pred <- predict(fit,df2)
+
+test_data_sub <- data.frame(UID=test_data$UID, Author_Category=pred)
+write.csv(test_data_sub, file="Submission_challenge_8.csv")
+
+## Twitter Set up
+library(twitteR)
+library(base64enc)
+api_key <- "fRCKlfukD5GhYgCtJnOFwwJRd"
+api_secret <- "mavuMFoquelo5SMNBVo2PnnHAi4m2MaOm7LChiaoXfbY9xLrbp"
+token <- "3134164560-tYAACVlvlMh8tzqBAbNdfLD12fumHAsf278l8t7"
+token_secret <- "Nt9GaL5BCsSeRPX7A48y3WZnpRLfXjDrXadQmECHbD3qX"
+
+setup_twitter_oauth( api_key, api_secret,token, token_secret)
+
+## Linkedin Set up
+library(Rlinkedin)
+in.auth <- inOAuth("Varun", "75wy1hjpdz0xr7", "gX3k9fQVrKRk8MVM")
+
+my.connections <- getMyConnections(in.auth)
+getProfile(in.auth)
+
+
