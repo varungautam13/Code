@@ -1,0 +1,33 @@
+b <- grep("@",test_data$Description)
+
+i=b[n]
+n=n+1
+desc_each <- unlist(strsplit(test_data$Description[i]," "))
+user <- sub(",","",desc_each[grep("@",desc_each)])
+user <- sub("\\.","",user)
+user <- sub(";","",user)
+user <- sub("\\)","",user)
+user <- sub("/","",user)
+user <- sub(":","",user)
+user <- sub("\\(","",user)
+user
+
+
+write.table(test_data,"updated_test.csv")
+###################################
+for (x in 1:length(user))
+                {
+                    user[x] <- sub("@","",user[x])
+                    
+                    user_tw <- getUser(user[x])
+                    user_desc <- user_tw$description
+                    desc_each[grep("@",desc_each)[x]] <- paste(desc_each[grep("@",desc_each)[x]],user_desc)
+                    
+                }
+            test_data$Description[i] <- paste(desc_each, collapse=" ")
+            ############################################
+            user <- sub("@","",user)
+user_tw <- getUser(user)
+user_desc <- user_tw$description
+desc_each[grep("@",desc_each)] <- paste(desc_each[grep("@",desc_each)],user_desc)
+test_data$Description[i] <- paste(desc_each, collapse=" ")
