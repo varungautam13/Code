@@ -17,3 +17,17 @@ for (i in 1:length(unique(train_data$cuisine)))
 }
 rm(x,y,i,m)
 
+freq_terms <- list()
+for (i in 1:20)
+    {
+        train_cus <- train_data %>% filter(cuisine==cus[i])
+        txt.desc <- VectorSource(unlist(train_cus$ingredients))
+        txt.desc <- Corpus(txt.desc)
+        docs <- tm_map(txt.desc, content_transformer(tolower))
+        dtm <- DocumentTermMatrix(docs)
+        freq_terms[[i]] <- findFreqTerms(dtm, lowfreq = 40)
+}
+
+rm(txt.desc,docs,dtm, i)
+
+freq_term_list <- unique(unlist(freq_terms))
