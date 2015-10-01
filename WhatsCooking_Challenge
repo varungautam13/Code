@@ -1,0 +1,19 @@
+library(jsonlite)
+library(dplyr)
+library(tm)
+train_data <- fromJSON("train.json")
+ingred <- train_data$ingredients
+ingred1 <- lapply(ingred,function(y) gsub(" ","-",y))
+train_data$ingredients <- ingred1
+train_data$cuisine <- as.factor(train_data$cuisine)
+cus <- unique(train_data$cuisine)
+df <- data.frame()
+for (i in 1:length(unique(train_data$cuisine)))
+{
+    x<- train_data %>% filter(cuisine==cus[i]) 
+    y <- paste(unlist(x$ingredients), collapse=" ")
+    m <- data.frame(cus[i],y)
+    df <- rbind(df,m)
+}
+rm(x,y,i,m)
+
